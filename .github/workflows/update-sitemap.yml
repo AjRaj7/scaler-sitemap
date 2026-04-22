@@ -1,0 +1,45 @@
+name: Update sitemap                                                                                                                                                                                    
+                                                                                                                                                                                                          
+  on:                                                       
+    schedule:
+      - cron: "0 * * * *"                                                                                                                                                                                 
+    workflow_dispatch:
+                                                                                                                                                                                                          
+  permissions:                                              
+    contents: write
+                                                                                                                                                                                                          
+  concurrency:
+    group: update-sitemap                                                                                                                                                                                 
+    cancel-in-progress: false                               
+
+  jobs:
+    update:
+      runs-on: ubuntu-latest
+      timeout-minutes: 5                                                                                                                                                                                  
+      steps:
+        - name: Checkout                                                                                                                                                                                  
+          uses: actions/checkout@v4                         
+
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:                                                                                                                                                                                           
+            node-version: 20
+                                                                                                                                                                                                          
+        - name: Fetch and rewrite sitemap                   
+          run: node scripts/fetch-and-rewrite.mjs
+                                                                                                                                                                                                          
+        - name: Configure git
+          run: |                                                                                                                                                                                          
+            git config user.name "github-actions[bot]"      
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                                                                                                                                                                                                          
+        - name: Commit and push if changed
+          run: |                                                                                                                                                                                          
+            if [ -n "$(git status --porcelain sitemap.xml)" ]; then
+              git add sitemap.xml                                                                                                                                                                         
+              git commit -m "chore: update sitemap [skip ci]"
+              git push                                                                                                                                                                                    
+            else                                            
+              echo "No sitemap changes detected; nothing to commit."                                                                                                                                      
+              exit 0                                                                                                                                                                                      
+            fi
